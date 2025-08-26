@@ -8,10 +8,10 @@
 # ============================================================
 
 resources:
-  population: 120
-  food: 80
-  morale: 50
-  infrastructure: 30
+  population: 20
+  food: 20
+  morale: 20
+  infrastructure: 20
 
 scenes:
 - id: 1_oxygen_shutdown
@@ -25,7 +25,7 @@ scenes:
       infrastructure: -1d8
 
   - key: earth_resupply
-    label: Užsakyti skubų O₂ papildymą iš Žemės
+    label: Užsakyti skubų filtrų papildymą iš Žemės
     effects:
       infrastructure: -1d4
       morale: -1d4
@@ -87,13 +87,12 @@ scenes:
   - key: do_nothing
     label: Nieko nedaryti – leisti įprasti prie blogo skonio
     effects:
-      people: -1d6
+      population: -1d6
       infrastructure: -1d4
 
-- id: 4_hull_crack
-  title: Struktūrinė įtrūka
-  description: Jutikliai aptinka mikroįtrūkius slėgio korpuse nuo temperatūrinių ciklų
-    ar mikrometeoroidų.
+- id: 4_grybas_outbreak
+  title: Grybelis salotose
+  description: Jutikliai aptinka kenksmingų grybų sporų šiltanmiuose.
   choices:
   - key: internal_patch
     label: Sustiprinti plotą lopu arba išoriniais rėmais
