@@ -1,0 +1,32 @@
+:root { --fg:#e8ecff; --sub:#bdc6ff; }
+html, body { margin:0; height:100%; background:#0c0e12; color:var(--fg);
+  font-family: system-ui, Segoe UI, Roboto, sans-serif; }
+.wrap { position:relative; height:100%; overflow:hidden; }
+.bg { position:absolute; inset:0; background-position:center; background-size:contain; background-repeat:no-repeat; }
+.dim { position:absolute; inset:0; background:rgba(0,0,0,var(--dim,0.35)); }
+
+/* Resource bar */
+.resbar { position:absolute; top:1.5vh; left:6vw; right:6vw; text-align:center;
+  font-size: clamp(14px, 2.2vw, 28px); color:#cfd6ff; opacity:0.95; }
+
+/* Centered content */
+.center { position:absolute; left:6vw; right:6vw; text-align:center; }
+.title { top:8vh;  font-size: clamp(28px, 6vw, 64px); font-weight:700; letter-spacing:0.5px; }
+.desc  { top:18vh; font-size: clamp(18px, 2.6vw, 36px); color:var(--sub); }
+
+/* Choices grid */
+.choices { position:absolute; left:6vw; right:6vw; top:34vh; bottom:12vh; display:grid;
+  gap:2.4vh 2.4vw; align-content:start;
+  grid-template-columns: repeat(auto-fit, minmax(min(32ch, 100%), 1fr)); }
+.choice { background: rgba(0,0,0,0.35); border:1px solid #2a3040; border-radius:14px; padding:18px;
+  font-size: clamp(18px, 2.4vw, 32px); }
+.choice .label { font-weight:600; margin-bottom:8px; }
+.choice .effects { font-size: 0.8em; color:#b6c0f5; }
+
+/* Widgets */
+.timer { position:absolute; top:2vh; right:2vw; font-size: clamp(22px, 4.2vw, 56px);
+  background:rgba(0,0,0,0.3); padding:0.3em 0.5em; border-radius:8px; }
+.result { position:absolute; left:6vw; right:6vw; bottom:1.6vh; text-align:center; 
+  font-size: clamp(18px, 2.6vw, 36px); color:#e9f0ff; background: rgba(0,0,0,0.35);
+  padding: 10px 12px; border-radius: 10px; min-height: 36px; }
+.blackout { position:absolute; inset:0; background:#000; }
