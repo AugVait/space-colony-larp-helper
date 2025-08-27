@@ -50,21 +50,28 @@ def publish_locked():
 
 # ---------- Dice parsing ----------
 def parse_and_roll_effect(value: Any) -> Tuple[int, Optional[str]]:
-    """Supports ints and dice strings like +1d6, -2d4, 3d8."""
+    """Supports ints and dice strings like +1d6, -2d4, 3d8, or 2d6+3."""
     if isinstance(value, int):
         return value, None
     if isinstance(value, str) and value.strip().lstrip("+-").isdigit():
         return int(value.strip()), None
     if isinstance(value, str):
         import re
-        m = re.fullmatch(r'([+-]?)(\d+)[dD](\d+)', value.strip())
+        # Updated regex to support optional modifier (+C or -C)
+        m = re.fullmatch(r'([+-]?)(\d+)[dD](\d+)([+-]\d+)?', value.strip())
         if m:
-            sign, n, sides = m.groups()
+            sign, n, sides, modifier = m.groups()
             n, sides = int(n), int(sides)
-            if n <= 0 or sides <= 0: return 0, None
+            if n <= 0 or sides <= 0:
+                return 0, None
             total = sum(random.randint(1, sides) for _ in range(n))
-            if sign == "-": total = -total
+            if modifier:
+                total += int(modifier)
+            if sign == "-":
+                total = -total
             disp = (sign if sign in "+-" else "+") + f"{n}d{sides}"
+            if modifier:
+                disp += modifier
             return total, disp
     return 0, None
 
