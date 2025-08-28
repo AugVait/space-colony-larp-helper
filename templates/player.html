@@ -1,30 +1,26 @@
 <!doctype html>
-<html>
+<html lang="lt">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Player Display</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mėnulio kolonija — Žaidėjų ekranas</title>
   <link rel="stylesheet" href="/static/player.css">
 </head>
 <body>
   <div class="wrap">
-    <div id="bg" class="bg"></div>
-    <div id="dim" class="dim"></div>
+    <div class="bg"></div>
+    <div class="dim"></div>
 
-    <!-- Resource bar -->
-    <div id="resbar" class="resbar"></div>
+    <div class="resbar"></div>
 
-    <!-- Scene -->
-    <div id="title" class="center title"></div>
-    <div id="desc"  class="center desc"></div>
+    <div class="center title"></div>
+    <div class="center desc"></div>
 
-    <!-- Choices -->
-    <div id="choices" class="choices"></div>
+    <!-- Choices appear here; each shows label + effects (resource consequences) -->
+    <div class="choices"></div>
 
-    <!-- Widgets -->
-    <div id="timer" class="timer" style="display:none;"></div>
-    <div id="result" class="result" style="display:none;"></div>
-    <div id="blackout" class="blackout" style="display:none;"></div>
+    <div class="timer"></div>
+    <div class="result"></div>
   </div>
 
   <script src="/static/player.js"></script>

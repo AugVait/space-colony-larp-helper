@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Asmenybių priskyrimas</title>
+  <style>
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0c0e12;color:#e8ecff}
+    header,main{max-width:980px;margin:0 auto;padding:16px}
+    h1{margin:8px 0 4px}
+    .card{background:#12151d;border:1px solid #2a3040;border-radius:12px;padding:16px;margin:12px 0}
+    textarea{width:100%;min-height:140px;resize:vertical}
+    button{padding:10px 14px;border-radius:10px;border:1px solid #2a3040;background:#1a1f2b;color:#e8ecff;cursor:pointer}
+    button:hover{background:#202637}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border-bottom:1px solid #2a3040;padding:8px;text-align:left;vertical-align:top}
+    .muted{color:#bdc6ff}.role{color:#cfd6ff}.small{font-size:12px;color:#bdc6ff}.btnsm{padding:4px 8px;border-radius:8px;margin-left:6px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Asmenybių priskyrimas</h1>
+  <p class="muted">Suvesk žaidėjų vardus (po vieną eilutėje). Paspausk „Priskirti“.</p>
+</header>
+<main>
+  <div class="card">
+    <label for="names">Žaidėjų vardai</label>
+    <textarea id="names" placeholder="Aistė&#10;Mantas&#10;Justė"></textarea>
+    <div style="margin-top:8px"><button id="btnAssign">Priskirti</button></div>
+  </div>
+  <div class="card" id="results" style="display:none">
+    <h3>Rezultatai</h3>
+    <table id="tbl">
+      <thead><tr><th>Vardas</th><th>Asmenybė</th><th>Kiek kartų buvo ko-kapitonas</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</main>
+<script src="/static/assigner.js"></script>
+</body>
+</html>

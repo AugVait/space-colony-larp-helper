@@ -1,312 +1,395 @@
-from flask import Flask, request, Response, jsonify, render_template, send_from_directory
-import json, time, threading, queue, os, random, yaml
-from typing import Any, Dict, Optional, Tuple
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+space-colony-larp-helper — Flask backend (GM + Player + Assigner)
+- /gm, /player, /assigner pages
+- YAML scenes/resources
+- SSE /stream
+- Choice effects with dice ("1d8+1" and with spaces)
+- Simplified personalities (name, info) + random assignment
+- Co-captain counters (per player)
+"""
 
-app = Flask(__name__, static_url_path="/static", static_folder="static", template_folder="templates")
+from __future__ import annotations
+import json, os, random, re, threading, time, socket
+from pathlib import Path
+from queue import SimpleQueue
+from typing import Any, Dict, Iterable, List, Tuple
 
-# ---------- Shared state & SSE ----------
-state_lock = threading.Lock()
-subscribers = set()  # set[queue.Queue]
+import yaml
+from flask import Flask, Response, jsonify, render_template, request
 
-def now() -> float: return time.time()
+app = Flask(__name__, static_folder="static", template_folder="templates")
 
-state = {
-    # Scene shown to Player
-    "title": "Welcome",
-    "description": "Load a YAML file on the GM panel to begin.",
-    "choices": [],                # list[{key,label,effects_text}]
-    "current_scene_id": None,
-
-    # Resources & order
+# -----------------------------------------------------------------------------#
+# Global state
+# -----------------------------------------------------------------------------#
+LOCK = threading.RLock()
+STATE: Dict[str, Any] = {
+    "title": "",
+    "description": "",
+    "choices": [],               # [{key,label,effects_text}]
     "resources": {},
     "resource_order": [],
-
-    # Visuals
-    "blackout": False,
     "bg_url": "",
     "bg_dim": 0.35,
-
-    # Timer
-    "show_timer": False,
-    "timer_seconds": 180,
-    "timer_ends_at": None,
-
-    # Result line after a choice
+    "blackout": False,
     "last_result_text": "",
+    "last_choice_key": None,     # <-- highlight on player view
+    "show_timer": False,
+    "timer_seconds": 0,
+    "timer_running": False,
+    "timer_ends_at": None,
+}
+SCENES: List[Dict[str, Any]] = []
+CURRENT_SCENE_ID: str | None = None
+SUBSCRIBERS: List[SimpleQueue] = []
+
+SCENES_PATH_DEFAULT = Path("scenes.yaml")
+PERSONALITIES_PATH = Path("personalities.yaml")
+COCAPTAIN_COUNTS: Dict[str, int] = {}  # {"PlayerName": times_as_co_captain}
+
+RESOURCE_ALIASES = {
+    "people": "population",
+    "atsargos": "food",
+    "population": "population",
+    "food": "food",
+    "morale": "morale",
+    "infrastructure": "infrastructure",
 }
 
-SCENES_PATH_DEFAULT = "scenes.yaml"
-scenes_data = { "resources": {}, "scenes": [], "index_by_id": {} }
+# -----------------------------------------------------------------------------#
+# Utilities
+# -----------------------------------------------------------------------------#
+def _now() -> float: return time.time()
+def normalize_resource_key(k: str) -> str:
+    k2 = (k or "").strip().lower()
+    return RESOURCE_ALIASES.get(k2, k2)
 
-def _serialize_state() -> str: return json.dumps(state)
+DICE_TOKEN_RE = re.compile(r"([+\-]?\s*(?:\d+d\d+|\d+))", re.I)
 
-def publish_locked():
-    data = _serialize_state()
-    dead = []
-    for q in list(subscribers):
-        try: q.put_nowait(data)
-        except Exception: dead.append(q)
-    for q in dead: subscribers.discard(q)
+def roll_expr(expr: Any) -> Tuple[int, str]:
+    if isinstance(expr, (int, float)): 
+        v = int(expr); return v, f"{v:+d}"
+    if not isinstance(expr, str): return 0, "+0"
+    s = expr.replace("−", "-")
+    tokens = [t.strip() for t in DICE_TOKEN_RE.findall(s.replace(" ", "")) if t.strip()]
+    total, parts = 0, []
+    for tok in tokens:
+        sign = 1
+        if tok[0] in "+-":
+            sign = -1 if tok[0] == "-" else 1
+            tok = tok[1:]
+        if "d" in tok:
+            n_str, s_str = tok.lower().split("d", 1)
+            n = int(n_str) if n_str else 1
+            sides = int(s_str)
+            rolls = [random.randint(1, sides) for _ in range(max(0, n))]
+            subtotal = sum(rolls) * sign
+            total += subtotal
+            parts.append((f"{subtotal:+d}", rolls, sides))
+        else:
+            val = int(tok) * sign
+            total += val
+            parts.append((f"{val:+d}", [], None))
+    pretty = []
+    for subtotal, rolls, sides in parts:
+        pretty.append(f"{subtotal} (d{sides}:{'+'.join(map(str, rolls))})" if rolls else subtotal)
+    return total, " ".join(pretty) if pretty else "+0"
 
-# ---------- Dice parsing ----------
-def parse_and_roll_effect(value: Any) -> Tuple[int, Optional[str]]:
-    """Supports ints and dice strings like +1d6, -2d4, 3d8, or 2d6+3."""
-    if isinstance(value, int):
-        return value, None
-    if isinstance(value, str) and value.strip().lstrip("+-").isdigit():
-        return int(value.strip()), None
-    if isinstance(value, str):
-        import re
-        # Updated regex to support optional modifier (+C or -C)
-        m = re.fullmatch(r'([+-]?)(\d+)[dD](\d+)([+-]\d+)?', value.strip())
-        if m:
-            sign, n, sides, modifier = m.groups()
-            n, sides = int(n), int(sides)
-            if n <= 0 or sides <= 0:
-                return 0, None
-            total = sum(random.randint(1, sides) for _ in range(n))
-            if modifier:
-                total += int(modifier)
-            if sign == "-":
-                total = -total
-            disp = (sign if sign in "+-" else "+") + f"{n}d{sides}"
-            if modifier:
-                disp += modifier
-            return total, disp
-    return 0, None
+def effects_to_text(effects: Dict[str, Any]) -> str:
+    items = []
+    for k, v in (effects or {}).items():
+        rk = normalize_resource_key(k)
+        if isinstance(v, (int, float)):
+            val = f"{int(v):+d}"
+        else:
+            val = str(v).replace(" ", "")
+            if not val.startswith(("+", "-")): val = "+" + val
+        items.append(f"{val} {rk}")
+    return ", ".join(items)
 
-def format_effects_list_for_display(effects: Dict[str, Any]) -> str:
-    """Human text like '+1d6 food, -2d4 morale' (no rolling yet)."""
-    parts, order, seen = [], (state.get("resource_order") or list(effects.keys())), set()
-    for name in order:
-        if name in effects:
-            seen.add(name)
-            val = effects[name]
-            if isinstance(val, int):
-                parts.append(f"{'+' if val>=0 else ''}{val} {name}")
-            elif isinstance(val, str):
-                s = val.strip()
-                if s and s[0] not in "+-": s = "+" + s
-                parts.append(f"{s} {name}")
-    for name, val in effects.items():
-        if name in seen: continue
-        if isinstance(val, int):
-            parts.append(f"{'+' if val>=0 else ''}{val} {name}")
-        elif isinstance(val, str):
-            s = val.strip()
-            if s and s[0] not in "+-": s = "+" + s
-            parts.append(f"{s} {name}")
-    return ", ".join(parts)
+def apply_effects(effects: Dict[str, Any]) -> Tuple[Dict[str, int], str]:
+    delta, parts = {}, []
+    for k, v in (effects or {}).items():
+        rk = normalize_resource_key(k)
+        rolled, pretty = roll_expr(v)
+        delta[rk] = delta.get(rk, 0) + rolled
+        parts.append(f"{rk}: {pretty}")
+    with LOCK:
+        for rk, d in delta.items():
+            STATE["resources"][rk] = max(0, int(STATE["resources"].get(rk, 0)) + d)
+    return delta, "; ".join(parts)
 
-def summarize_applied_effects(applied: Dict[str, int]) -> str:
-    if not applied: return ""
-    parts, order, used = [], (state.get("resource_order") or list(applied.keys())), set()
-    for name in order:
-        if name in applied:
-            used.add(name)
-            d = applied[name]
-            parts.append(f"{name.capitalize()} {'+' if d>=0 else ''}{d}")
-    for name, d in applied.items():
-        if name not in used: parts.append(f"{name.capitalize()} {'+' if d>=0 else ''}{d}")
-    return ", ".join(parts)
+def snapshot_state() -> Dict[str, Any]:
+    with LOCK:
+        st = dict(STATE)
+        st["timer_ends_at"] = int(STATE["timer_ends_at"]) if STATE.get("timer_running") and STATE.get("timer_ends_at") else None
+        return st
 
-# ---------- Scenes ----------
-def load_scenes_from_path(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+def broadcast():
+    data = json.dumps(snapshot_state(), ensure_ascii=False)
+    for q in list(SUBSCRIBERS):
+        try: q.put(data)
+        except Exception: pass
+
+def set_resources(res: Dict[str, int], order: Iterable[str] | None = None):
+    with LOCK:
+        clean = {normalize_resource_key(k): int(v) for k, v in (res or {}).items()}
+        STATE["resources"] = clean
+        STATE["resource_order"] = [normalize_resource_key(x) for x in order] if order else list(clean.keys())
+
+def set_current_scene(scene_id: str | None):
+    global CURRENT_SCENE_ID
+    with LOCK:
+        CURRENT_SCENE_ID = scene_id
+        STATE["last_result_text"] = ""
+        STATE["last_choice_key"] = None
+        if scene_id is None:
+            STATE["title"] = ""; STATE["description"] = ""; STATE["choices"] = []
+        else:
+            sc = next((s for s in SCENES if s.get("id") == scene_id), None)
+            if sc:
+                STATE["title"] = sc.get("title", "")
+                STATE["description"] = sc.get("description", "")
+                chs = []
+                for c in sc.get("choices", []):
+                    chs.append({"key": c.get("key"), "label": c.get("label",""), "effects_text": c.get("effects_text","")})
+                STATE["choices"] = chs
+
+# -----------------------------------------------------------------------------#
+# YAML: scenes
+# -----------------------------------------------------------------------------#
+def load_scenes_from_file(path: Path) -> Tuple[Dict[str, int], List[Dict[str, Any]]]:
+    if not path.exists(): raise FileNotFoundError(str(path))
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     resources = data.get("resources", {}) or {}
-    scenes = data.get("scenes", []) or {}
-    index = {s.get("id"): s for s in scenes if s.get("id")}
-    return {"resources": resources, "scenes": scenes, "index_by_id": index}
+    scenes = data.get("scenes", []) or []
+    for sc in scenes:
+        for ch in sc.get("choices", []):
+            eff = ch.get("effects", {}) or {}
+            ch["effects_text"] = ch.get("effects_text") or effects_to_text(eff)
+    return resources, scenes
 
-def _apply_scene_to_state(scene: Dict[str, Any]):
-    state["title"] = scene.get("title", "") or ""
-    state["description"] = scene.get("description", "") or ""
-    out = []
-    for c in (scene.get("choices") or []):
-        eff = c.get("effects", {}) or {}
-        out.append({"key": c.get("key",""), "label": c.get("label",""),
-                    "effects_text": format_effects_list_for_display(eff) if eff else ""})
-    state["choices"] = out
-    state["last_result_text"] = ""
+# -----------------------------------------------------------------------------#
+# YAML: personalities (simplified: name, info)
+# -----------------------------------------------------------------------------#
+def load_personalities() -> List[Dict[str, Any]]:
+    if not PERSONALITIES_PATH.exists(): return []
+    data = yaml.safe_load(PERSONALITIES_PATH.read_text(encoding="utf-8")) or {}
+    plist = data.get("personalities", []) or []
+    for p in plist:
+        p["name"] = str(p.get("name","")).strip()
+        p["info"] = str(p.get("info","")).strip()
+        p["id"] = re.sub(r"[^a-z0-9_]+","_", p["name"].lower()).strip("_") or f"p_{abs(hash(p['name']))%10000}"
+    return plist
 
-def set_current_scene(scene_id: str) -> bool:
-    scene = scenes_data["index_by_id"].get(scene_id)
-    if not scene: return False
-    _apply_scene_to_state(scene)
-    state["current_scene_id"] = scene_id
-    return True
+PERSONALITIES_CACHE = load_personalities()
 
-# ---------- SSE ----------
+# -----------------------------------------------------------------------------#
+# SSE
+# -----------------------------------------------------------------------------#
 @app.get("/stream")
 def stream():
-    q = queue.Queue()
-    with state_lock:
-        subscribers.add(q)
-        q.put(_serialize_state())
-
+    q = SimpleQueue(); SUBSCRIBERS.append(q)
     def gen():
+        yield f"data: {json.dumps(snapshot_state(), ensure_ascii=False)}\n\n"
         try:
-            while True:
-                try:
-                    data = q.get(timeout=15)
-                    yield f"data: {data}\n\n"
-                except queue.Empty:
-                    yield ": keepalive\n\n"
+            while True: yield f"data: {q.get()}\n\n"
         finally:
-            subscribers.discard(q)
+            if q in SUBSCRIBERS: SUBSCRIBERS.remove(q)
+    return Response(gen(), headers={
+        "Content-Type":"text/event-stream","Cache-Control":"no-cache","X-Accel-Buffering":"no","Connection":"keep-alive"
+    })
+# -----------------------------------------------------------------------------#
+# Pages
+# -----------------------------------------------------------------------------#
+@app.get("/")
+def index():
+    return render_template("gm.html")
 
-    return Response(gen(), mimetype="text/event-stream; charset=utf-8",
-                    headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no","Connection":"keep-alive"})
+@app.get("/gm")
+def page_gm():
+    return render_template("gm.html")
 
-# ---------- API ----------
+@app.get("/player")
+def page_player():
+    return render_template("player.html")
+
+@app.get("/assigner")
+def page_assigner():
+    return render_template("assigner.html")
+
+# -----------------------------------------------------------------------------#
+# APIs: scenes/resources/state
+# -----------------------------------------------------------------------------#
 @app.post("/api/load_yaml")
 def api_load_yaml():
-    payload = request.get_json(force=True, silent=True) or {}
-    path = (payload.get("path") or SCENES_PATH_DEFAULT).strip()
-    if not path: return jsonify({"ok":False,"error":"Path required"}), 400
+    payload = request.get_json(force=True) or {}
+    path = Path(payload.get("path") or SCENES_PATH_DEFAULT)
     try:
-        data = load_scenes_from_path(path)
+        resources, scenes = load_scenes_from_file(path)
     except Exception as e:
-        return jsonify({"ok":False,"error":f"Failed to load: {e}"}), 400
-
-    with state_lock:
-        scenes_data.update(data)
-        state["resources"] = {k:int(v) for k,v in (data["resources"] or {}).items()}
-        state["resource_order"] = list((data["resources"] or {}).keys())
-        first_id = data["scenes"][0]["id"] if data["scenes"] else None
-        if first_id: set_current_scene(first_id)
-        publish_locked()
-    return jsonify({"ok":True,"first_scene":first_id})
+        return jsonify({"ok": False, "error": str(e)})
+    with LOCK:
+        set_resources(resources, order=resources.keys())
+        global SCENES
+        SCENES = scenes
+        set_current_scene(scenes[0]["id"] if scenes else None)
+    broadcast(); return jsonify({"ok": True})
 
 @app.get("/api/scenes")
 def api_scenes():
-    with state_lock:
-        items = [{"id": s.get("id"), "title": s.get("title","")} for s in scenes_data["scenes"]]
-    return jsonify({"ok":True,"scenes":items})
+    return jsonify({"scenes":[{"id":s.get("id"),"title":s.get("title","")} for s in SCENES]})
 
 @app.post("/api/select_scene")
 def api_select_scene():
-    payload = request.get_json(force=True, silent=True) or {}
-    sid = (payload.get("id") or "").strip()
-    with state_lock:
-        if not set_current_scene(sid):
-            return jsonify({"ok":False,"error":"Unknown scene id"}), 404
-        publish_locked()
-    return jsonify({"ok":True})
+    scene_id = (request.get_json(force=True) or {}).get("id")
+    set_current_scene(scene_id); broadcast()
+    return jsonify({"ok": True})
+
+@app.get("/api/state")
+def api_state(): return jsonify(snapshot_state())
+
+@app.get("/api/resources")
+def api_resources_get(): return jsonify({"resources": snapshot_state().get("resources", {})})
+
+@app.post("/api/resources")
+def api_resources_post():
+    payload = request.get_json(force=True) or {}
+    with LOCK:
+        if "values" in payload:
+            for k, v in (payload.get("values") or {}).items():
+                rk = normalize_resource_key(k)
+                STATE["resources"][rk] = max(0, int(v))
+        if "delta" in payload:
+            for k, d in (payload.get("delta") or {}).items():
+                rk = normalize_resource_key(k)
+                STATE["resources"][rk] = max(0, int(STATE["resources"].get(rk, 0)) + int(d))
+    broadcast(); return jsonify({"ok": True})
 
 @app.post("/api/choice")
 def api_choice():
-    payload = request.get_json(force=True, silent=True) or {}
-    key = (payload.get("key") or "").strip()
-    with state_lock:
-        scene = scenes_data["index_by_id"].get(state.get("current_scene_id"))
-        if not scene: return jsonify({"ok":False,"error":"No current scene"}), 400
-        choice = next((c for c in (scene.get("choices") or []) if c.get("key")==key), None)
-        if not choice: return jsonify({"ok":False,"error":"Unknown choice"}), 404
+    payload = request.get_json(force=True) or {}
+    key = payload.get("key")
+    sc = next((s for s in SCENES if s.get("id") == CURRENT_SCENE_ID), None)
+    if not sc: return jsonify({"ok": False, "error": "No current scene."}), 400
+    choice = next((c for c in sc.get("choices", []) if c.get("key") == key), None)
+    if not choice: return jsonify({"ok": False, "error": "Choice not found."}), 404
+    delta, breakdown = apply_effects(choice.get("effects", {}))
+    label = choice.get("label", "")
+    signed = ", ".join([f"{rk} {d:+d}" for rk, d in delta.items()]) or "no change"
+    with LOCK:
+        STATE["last_result_text"] = f"Pasirinkta: {label}. Poveikis: {signed} ({breakdown})"
+        STATE["last_choice_key"] = choice.get("key")
+    broadcast(); return jsonify({"ok": True, "delta": delta})
 
-        applied: Dict[str,int] = {}
-        for rname, spec in (choice.get("effects") or {}).items():
-            delta, _ = parse_and_roll_effect(spec)
-            state["resources"][rname] = int(state["resources"].get(rname,0)) + delta
-            applied[rname] = applied.get(rname,0) + delta
-            if rname not in state["resource_order"]:
-                state["resource_order"].append(rname)
-
-        state["last_result_text"] = summarize_applied_effects(applied)
-        _apply_scene_to_state(scene)  # keep same scene
-        state["last_result_text"] = summarize_applied_effects(applied)
-        publish_locked()
-    return jsonify({"ok":True})
-
-@app.get("/api/resources")
-def api_resources_get():
-    with state_lock:
-        return jsonify({"ok":True,"resources":state["resources"]})
-
-@app.post("/api/resources")
-def api_resources_update():
-    payload = request.get_json(force=True, silent=True) or {}
-    values, delta = payload.get("values"), payload.get("delta")
-    with state_lock:
-        if isinstance(values, dict):
-            for k,v in values.items():
-                try:
-                    state["resources"][k] = int(v)
-                    if k not in state["resource_order"]: state["resource_order"].append(k)
-                except: pass
-        if isinstance(delta, dict):
-            for k,d in delta.items():
-                try:
-                    d = int(d)
-                    state["resources"][k] = int(state["resources"].get(k,0)) + d
-                    if k not in state["resource_order"]: state["resource_order"].append(k)
-                except: pass
-        publish_locked()
-    return jsonify({"ok":True})
-
+# background / blackout / timer
 @app.post("/api/background")
 def api_background():
-    payload = request.get_json(force=True, silent=True) or {}
-    url = payload.get("url","").strip()
-    dim = max(0.0, min(1.0, float(payload.get("dim", state["bg_dim"]))))
-    with state_lock:
-        state["bg_url"] = url
-        state["bg_dim"] = dim
-        publish_locked()
-    return jsonify({"ok":True})
+    payload = request.get_json(force=True) or {}
+    with LOCK:
+        STATE["bg_url"] = payload.get("url","")
+        STATE["bg_dim"] = max(0.0, min(1.0, float(payload.get("dim", 0.35) or 0.35)))
+    broadcast(); return jsonify({"ok": True})
 
 @app.post("/api/blackout")
 def api_blackout():
-    payload = request.get_json(force=True, silent=True) or {}
-    value = bool(payload.get("value", False))
-    with state_lock:
-        state["blackout"] = value
-        publish_locked()
-    return jsonify({"ok":True})
+    payload = request.get_json(force=True) or {}
+    with LOCK: STATE["blackout"] = bool(payload.get("value", False))
+    broadcast(); return jsonify({"ok": True})
 
 @app.post("/api/timer")
 def api_timer():
-    payload = request.get_json(force=True, silent=True) or {}
-    action = (payload.get("action") or "").lower()
-    sec = int(payload.get("seconds", 0))
-    show = payload.get("show", None)
-
-    with state_lock:
-        remain = max(0, int(round(state["timer_ends_at"] - now()))) if state["timer_ends_at"] else max(0, int(state["timer_seconds"]))
+    p = request.get_json(force=True) or {}
+    action, show = p.get("action"), p.get("show")
+    with LOCK:
+        if show is not None: STATE["show_timer"] = bool(show)
         if action == "set":
-            state["timer_seconds"] = max(0, sec); state["timer_ends_at"] = None
-        elif action == "start":
-            base = state["timer_seconds"] if state["timer_ends_at"] is None else remain
-            state["timer_ends_at"] = now() + max(0, int(base))
-        elif action == "stop":
-            state["timer_seconds"] = remain; state["timer_ends_at"] = None
+            secs = max(0, int(p.get("seconds", 0) or 0))
+            if STATE.get("timer_running"):
+                STATE["timer_ends_at"] = _now() + secs
+            else:
+                STATE["timer_seconds"] = secs; STATE["timer_ends_at"] = None
+        elif action == "start" and not STATE.get("timer_running"):
+            STATE["timer_running"] = True
+            STATE["timer_ends_at"] = _now() + max(0, int(STATE.get("timer_seconds",0) or 0))
+        elif action == "stop" and STATE.get("timer_running"):
+            remain = max(0, int(round(STATE["timer_ends_at"] - _now()))) if STATE.get("timer_ends_at") else 0
+            STATE["timer_running"] = False; STATE["timer_seconds"] = remain; STATE["timer_ends_at"] = None
         elif action == "add":
-            d = int(payload.get("delta", 0))
-            if state["timer_ends_at"] is not None: state["timer_ends_at"] += d
-            else: state["timer_seconds"] = max(0, state["timer_seconds"] + d)
+            delta = int(p.get("delta", 0) or 0)
+            if STATE.get("timer_running") and STATE.get("timer_ends_at"):
+                STATE["timer_ends_at"] = max(_now(), STATE["timer_ends_at"] + delta)
+            else:
+                STATE["timer_seconds"] = max(0, int(STATE.get("timer_seconds", 0) or 0) + delta)
         elif action == "toggle_visibility":
-            state["show_timer"] = not state["show_timer"]
-        if show is not None: state["show_timer"] = bool(show)
-        if state["timer_ends_at"] and (state["timer_ends_at"] - now()) <= 0:
-            state["timer_seconds"] = 0; state["timer_ends_at"] = None
-        publish_locked()
-    return jsonify({"ok":True})
+            STATE["show_timer"] = not STATE.get("show_timer", False)
+    broadcast(); return jsonify({"ok": True})
 
-@app.get("/api/state")
-def api_state():
-    with state_lock:
-        remain = max(0, int(round(state["timer_ends_at"] - now()))) if state["timer_ends_at"] else 0
-        return jsonify({**state, "timer_remaining": remain})
+# personalities / assignment / co-captains
+@app.get("/api/personalities")
+def api_personalities(): return jsonify(PERSONALITIES_CACHE)
 
-# ---------- Pages ----------
-@app.get("/player")
-def player():  return render_template("player.html")
-@app.get("/gm")
-def gm():      return render_template("gm.html")
+@app.post("/api/assign_personalities")
+def api_assign_personalities():
+    names = [str(n).strip() for n in (request.get_json(force=True) or {}).get("names", []) if str(n).strip()]
+    if not names: return jsonify({"error":"Pateik bent vieną vardą."}), 400
+    roles = PERSONALITIES_CACHE[:]
+    if not roles: return jsonify({"error":"Asmenybių sąrašas tuščias."}), 400
+    random.shuffle(roles)
+    assignments = []
+    for i, n in enumerate(names):
+        p = roles[i % len(roles)]
+        assignments.append({"name": n, "personality": {"name": p["name"], "info": p["info"]}})
+    counts = {n: int(COCAPTAIN_COUNTS.get(n, 0)) for n in names}
+    return jsonify({"assignments": assignments, "counts": counts})
 
+@app.get("/api/cocaptains")
+def api_cocaptains_get(): return jsonify({"counts": COCAPTAIN_COUNTS})
+
+@app.post("/api/cocaptain")
+def api_cocaptain_bump():
+    p = request.get_json(force=True) or {}
+    name = str(p.get("name","")).strip()
+    delta = int(p.get("delta", 1))
+    if not name: return jsonify({"error":"Trūksta vardo."}), 400
+    COCAPTAIN_COUNTS[name] = max(0, int(COCAPTAIN_COUNTS.get(name, 0)) + delta)
+    return jsonify({"ok": True, "name": name, "count": COCAPTAIN_COUNTS[name]})
+
+# -----------------------------------------------------------------------------#
+# Bootstrap
+# -----------------------------------------------------------------------------#
+def _initial_bootstrap():
+    try:
+        if SCENES_PATH_DEFAULT.exists():
+            resources, scenes = load_scenes_from_file(SCENES_PATH_DEFAULT)
+            set_resources(resources, order=resources.keys())
+            global SCENES
+            SCENES = scenes
+            set_current_scene(scenes[0]["id"] if scenes else None)
+        else:
+            set_resources({"population":20,"food":20,"morale":20,"infrastructure":20})
+            set_current_scene(None)
+    except Exception as e:
+        print("Initial load failed:", e)
+_initial_bootstrap()
+
+# -----------------------------------------------------------------------------#
+# Run
+# -----------------------------------------------------------------------------#
 if __name__ == "__main__":
-    host = "127.0.0.1"
-    port = 5000
-    print(f"GM page: http://{host}:{port}/gm")
-    app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "5000"))
+    debug = bool(int(os.environ.get("DEBUG", "1")))
+    local = f"http://127.0.0.1:{port}"
+    ip = socket.gethostbyname(socket.gethostname())
+    ip_url = f"http://{ip}:{port}"
+    print("\n=== space-colony-larp-helper running ===")
+    print(f"GM:        {local}/gm        | {ip_url}/gm")
+    print(f"Player:    {local}/player    | {ip_url}/player")
+    print(f"Assigner:  {local}/assigner  | {ip_url}/assigner")
+    print(f"SSE:       {local}/stream    | {ip_url}/stream")
+    print(f"State API: {local}/api/state | {ip_url}/api/state")
+    print("Press Ctrl+C to stop.\n")
+    app.run(host=host, port=port, debug=debug, threaded=True)
