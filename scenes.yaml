@@ -40,8 +40,7 @@ scenes:
       population: -1d6
       morale: -1d6
       infrastructure: -1d8
-
-      
+     
 - id: 2_power_collapse
   title: Gedimas išorinėje energijos magistralėje
   description: Kritinis energijos magistralės gedimas sustabdo elektros tiekimą kolonijos sistemoms.
@@ -95,26 +94,105 @@ scenes:
   description: Jutikliai aptinka kenksmingų grybų sporų šiltanmiuose.
   choices:
   - key: internal_patch
-    label: Sustiprinti plotą lopu arba išoriniais rėmais
+    label: Sunaikinti užkrėstą derlių ir persodinti naują
     effects:
-      infrastructure: +1d6
+      infrastructure: -1d6
+      food: -2d4
   - key: reduce_pressure
-    label: Laikinai sumažinti vidaus slėgį
+    label: Tirti šiltnamių slėgį ir drėgmę, kad sulėtinti grybų augimą
     effects:
-      morale: -1d4
+      morale: +1d4
+      food: -1d8
   - key: evacuate_module
-    label: Evakuoti gretimus modulius iki remonto
+    label: Pasinaudoti proga tirti kosminius grybus
     effects:
       people: -1d2
+      food: -1d4
+      morale: +1d6
   - key: do_nothing
-    label: Nieko nedaryti – rizikuoti korpuso plyšimu
+    label: Nieko nedaryti – rizikuoti apsinuodijimu
     effects:
       people: -1d8
-      infrastructure: -2d4
+      food: -2d8
+
+- id: 5_skambutis_is_zemes
+  title: Skambutis iš Žemės
+  description: Artėjančių švenčių proga kolonijai sveikinimą atsiunčia ES prezidentas.
+  choices:
+  - key: 1
+    label: Kartu padėkoti valdžiai už skambutį ir perduoti linkėjimus 
+    effects:
+      morale: +1d6
+  - key: atsisakyti
+    label: Atsisakyti skambučio – per daug užimti
+    effects:
+      food: +1d4
+      infrastructure: +1d4
+  - key: kritikuoti
+    label: Pasinaudoti proga kritikuoti Žemės valdžią
+    effects:
+      morale: +1d10-5
+  - key: do_nothing
+    label: Kolonija transliuoja individualius sveikinimus
+    effects:
+      morale: +1d4
+      
+- id: 6_kinu_robotas
+  title: Kinų robotas
+  description: Kinų robotas pasiekia koloniją, pradeda tirti gretimą teritoriją.
+  choices:
+  - key: 1_pasirinkimas
+    label: išardyti robotą dėl atsarginių dalių
+      effects:
+      infrastructure: +1d6
+  - key: 2_pasirinkimas
+    label: perprogramuoti robotą kolonijos naudai
+    effects:
+      infrastructure: -1d4
+      morale: -1d4
+  - key: 3_pasirinkimas
+    label: placeholder
+    effects:
+      population: -1d2 +1 
+      morale: -1d4
+  - key: do_nothing
+    label: Nieko nedaryti – 
+    effects:
+      population: -1d6
+      morale: -1d6
+      infrastructure: -1d8
+
+
+- id: nr_pavadinimas
+  title: placeholder
+  description: placeholder
+  choices:
+  - key: 1_pasirinkimas
+    label: placeholder
+      effects:
+      infrastructure: -1d8
+
+  - key: 2_pasirinkimas
+    label: placeholder
+    effects:
+      infrastructure: -1d4
+      morale: -1d4
+  - key: 3_pasirinkimas
+    label: placeholder
+    effects:
+      population: -1d2 +1 
+      morale: -1d4
+  - key: do_nothing
+    label: Nieko nedaryti – 
+    effects:
+      population: -1d6
+      morale: -1d6
+      infrastructure: -1d8
+
+
 
 # Reikia gerų situacijų
 # prezidentas skambina pasveikinti
-# naujas kolonistas atvyksta
 # privaziuoja autonominis kinu robotas
 ## ardom for spare parts
 ## uždarom
