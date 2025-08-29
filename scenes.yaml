@@ -189,6 +189,32 @@ scenes:
       morale: -1d6
       infrastructure: -1d8
 
+- id: paskutinis
+  title: kažkas beldzia lauke
+  description: Kažkas vyksta lauke, keisti garsai sklinda pro kolonijos sienas. Ką daryti?
+  choices:
+  - key: 1_pasirinkimas
+    label: placeholder
+      effects:
+      infrastructure: -1d8
+
+  - key: 2_pasirinkimas
+    label: placeholder
+    effects:
+      infrastructure: -1d4
+      morale: -1d4
+  - key: 3_pasirinkimas
+    label: placeholder
+    effects:
+      population: -1d2 +1 
+      morale: -1d4
+  - key: do_nothing
+    label: Nieko nedaryti – 
+    effects:
+      population: -1d6
+      morale: -1d6
+      infrastructure: -1d8
+
 
 
 # Reikia gerų situacijų
