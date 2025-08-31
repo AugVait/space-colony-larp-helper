@@ -1,31 +1,45 @@
 personalities:
-  - name: "Ūkvedys (logistika)"
-    info: "Skaičiuoja dėžes, planuoja du žingsnius į priekį. Buvęs orbitinio uosto logistikos viršininkas."
-  - name: "Vyriausiasis inžinierius"
-    info: "Pirmiausia taiso, miega mašinų skyriuje. Pertvarkė gyvybės palaikymą."
-  - name: "Botanikė"
-    info: "Gyvena šiltnamyje, kvepia bazilikais. Sukūrė dumblių bokštus."
-  - name: "Saugumo vadovas"
-    info: "Eina perimetrą, kalba brifingais. Buvęs taikdarys."
-  - name: "Gydytoja"
-    info: "Tvirtos rankos, šaltos diagnozės."
-  - name: "Archeologas"
-    info: "Kataloguoja priešžlugiminę techniką, kalbasi su mašinų „vaiduokliais“."
-  - name: "Žvalgas-kasybininkas"
-    info: "Žymi gyslas, rizikuoja anksti."
-  - name: "Diplomatė"
-    info: "Pirma klauso, tada maino, paskui pasirašo."
-  - name: "Archyvaras"
-    info: "Fiksuoja viską, nekenčia trūkstamų duomenų."
-  - name: "Žvalgė (žygeivė)"
-    info: "Keliauja toli, praneša glaustai."
-  - name: "Prekybininkas"
-    info: "Skaičiuoja maržas, valdo sandėlį."
-  - name: "Kapelionė"
-    info: "Laiko duris atviras, patarėja per ilgąją žiemą."
-  - name: "Mokytoja"
-    info: "Tvarko chaosą, matuoja pažangą."
-  - name: "Matininkas"
-    info: "Lygina gruntą, mąsto tinkleliais."
-  - name: "Kultūros kuratorė"
-    info: "Rengia šventes, palaiko moralę."
+  - name: "Ūkvedys/logist(ikas/ė)"
+    info: "Prioritetai: infrastruktūra, maistas, populiacija, moralė. Gerbia Botanik(ą/ę) dėl aprūpinimo, nepasitiki Archyvar(u/e) kaip nepraktišku."
+
+  - name: "Vyriausias(is/ė) inžinier(ius/ė)"
+    info: "Prioritetai: infrastruktūra, populiacija, maistas, moralė. Gerbia Elektros inžinier(ių/ę), nepasitiki Psicholog(u/e) dėl 'neapčiuopiamų' problemų."
+
+  - name: "Botanik(as/ė)"
+    info: "Prioritetai: maistas, populiacija, moralė, infrastruktūra. Gerbia Astrobiolog(ą/ę), nepasitiki Saugos specialist(u/e) dėl perteklinės kontrolės."
+
+  - name: "Saugos specialist(as/ė)"
+    info: "Prioritetai: moralė, populiacija, infrastruktūra, maistas. Gerbia EVA specialist(ą/ę), nepasitiki Archyvar(u/e) kaip bereikalingu."
+
+  - name: "Gydytoj(as/a)"
+    info: "Prioritetai: populiacija, moralė, infrastruktūra, maistas. Gerbia Psicholog(ą/ę), nepasitiki Chemijos specialist(u/e) dėl pavojingų eksperimentų."
+
+  - name: "Astrobiolog(as/ė)"
+    info: "Prioritetai: infrastruktūra, maistas, populiacija, moralė. Gerbia Botanik(ą/ę), nepasitiki Ūkvedžiu dėl 'žemiško' mąstymo."
+
+  - name: "Lunarolog(as/ė)"
+    info: "Prioritetai: infrastruktūra, moralė, populiacija, maistas. Gerbia Vyriausiąjį inžinierių, nepasitiki Sielovados specialist(u/e)."
+
+  - name: "Psicholog(as/ė)"
+    info: "Prioritetai: moralė, maistas, infrastruktūra, populiacija. Gerbia Gydytoją, nepasitiki Ūkvedžiu dėl abejingumo žmonių būklei."
+
+  - name: "Archyvar(as/ė)"
+    info: "Prioritetai: moralė, infrastruktūra, populiacija, maistas. Gerbia Kultūros kurator(ų/ę), nepasitiki Saugos specialist(u/e)."
+
+  - name: "EVA specialist(as/ė)"
+    info: "Prioritetai: infrastruktūra, populiacija, maistas, moralė. Gerbia Saugos specialist(ą/ę), nepasitiki Psicholog(u/e)."
+
+  - name: "Chemijos specialist(as/ė)"
+    info: "Prioritetai: maistas, infrastruktūra, populiacija, moralė. Gerbia Lunarolog(ą/ę), nepasitiki Gydytoju dėl 'perdėto atsargumo'."
+
+  - name: "Sielovados specialist(as/ė)"
+    info: "Prioritetai: moralė, populiacija, maistas, infrastruktūra. Gerbia Psicholog(ą/ę), nepasitiki Lunarolog(u/e)."
+
+  - name: "Mokymo konsultant(as/ė)"
+    info: "Prioritetai: populiacija, maistas, infrastruktūra, moralė. Gerbia Kultūros kurator(ę/ų), nepasitiki Ūkvedžiu dėl griežtumo."
+
+  - name: "Elektros inžinier(ius/ė)"
+    info: "Prioritetai: infrastruktūra, populiacija, moralė, maistas. Gerbia Vyriausiąjį inžinierių, nepasitiki Botanik(u/e)."
+
+  - name: "Kultūros kurator(ius/ė)"
+    info: "Prioritetai: moralė, maistas, populiacija, infrastruktūra. Gerbia Archyvar(ą/ę), nepasitiki Chemijos specialist(u/e)."
