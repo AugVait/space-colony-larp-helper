@@ -139,14 +139,39 @@ scenes:
       
 - id: 6_kinu_robotas
   title: Kinų robotas
-  description: Kinų robotas pasiekia koloniją, pradeda tirti gretimą teritoriją.
+  description: Kinijos liaudies respublikos robotas pasiekia koloniją, pradeda tirti aplinkinę teritoriją.
   choices:
   - key: 1_pasirinkimas
-    label: išardyti robotą dėl atsarginių dalių
+    label: išrinkti robotą ir panaudoti jo dalis
       effects:
       infrastructure: +1d6
   - key: 2_pasirinkimas
     label: perprogramuoti robotą kolonijos naudai
+    effects:
+      infrastructure: +1d4
+      morale: +1d4
+  - key: 3_pasirinkimas
+    label: Greitai sunaikinti robotą
+    effects:
+      morale: +1d8
+  - key: do_nothing
+    label: Nieko nedaryti – leisti robotui dirbti 
+    effects:
+      morale: +1d6
+      infrastructure: +1d4
+      
+
+- id: 7_saulės_audra
+  title: placeholder
+  description: placeholder
+  choices:
+  - key: 1_pasirinkimas
+    label: placeholder
+      effects:
+      infrastructure: -1d8
+
+  - key: 2_pasirinkimas
+    label: placeholder
     effects:
       infrastructure: -1d4
       morale: -1d4
@@ -193,18 +218,18 @@ scenes:
   title: kažkas beldzia lauke
   description: Kažkas vyksta lauke, keisti garsai sklinda pro kolonijos sienas. Ką daryti?
   choices:
-  - key: 1_pasirinkimas
-    label: placeholder
+  - key: bėgti
+    label: Bėgti į Žemę
       effects:
       infrastructure: -1d8
 
-  - key: 2_pasirinkimas
-    label: placeholder
+  - key: eiti
+    label: Eiti pažiūrėti kas ten
     effects:
       infrastructure: -1d4
       morale: -1d4
-  - key: 3_pasirinkimas
-    label: placeholder
+  - key: gintis
+    label: Slėptis ir ginkluotis.
     effects:
       population: -1d2 +1 
       morale: -1d4
