@@ -1,15 +1,17 @@
 (function(){
   const $  = s => document.querySelector(s);
-
   let tick = null;
 
-  function cap(s){ return (s||"").charAt(0).toUpperCase() + (s||"").slice(1); }
+  // Resource icons
+  const ICONS = { population:"👥", food:"🍞", morale:"🙂", infrastructure:"🏗️" };
+
   function setText(sel, txt){ const el=$(sel); if(el) el.textContent = txt||""; }
 
   function renderResources(state){
     const res = state.resources || {};
     const order = (state.resource_order && state.resource_order.length) ? state.resource_order : Object.keys(res).sort();
-    setText(".resbar", order.map(k => `${cap(k)}: ${res[k] ?? 0}`).join(" • "));
+    const pills = order.map(k => `${ICONS[k]||""}${res[k] ?? 0}`);
+    setText(".resbar", pills.join("   "));
   }
 
   function renderScene(state){
@@ -20,17 +22,40 @@
     if(!wrap) return;
     wrap.innerHTML = "";
 
+    const resolvedKey = state.last_choice_key || null;
     (state.choices || []).forEach(c => {
       const box = document.createElement("div");
       box.className = "choice";
       box.dataset.key = c.key;
-      box.innerHTML = `
-        <div class="label">${c.label || ""}</div>
-        <div class="effects">${c.effects_text || ""}</div>
-      `;
+
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = c.label || "";
+      box.appendChild(label);
+
+      const eff = document.createElement("div");
+      eff.className = "effects";
+      // show effects only for the choice actually resolved
+      if(resolvedKey && resolvedKey === c.key && c.effects_text){
+        const parts = c.effects_text.split(",").map(s=>s.trim());
+        const shown = parts.map(p => {
+          const [val, res] = p.split(/\s+/);
+          return `${val}${ICONS[res]||""}`;
+        });
+        eff.textContent = shown.join(" ");
+      } else {
+        eff.textContent = ""; // hide before resolution or other choices
+      }
+      box.appendChild(eff);
+
       if(state.last_choice_key && state.last_choice_key === c.key){
         box.classList.add("selected");
       }
+
+      const gs = state.group_selected || {};
+      if(gs.A === c.key) box.classList.add("green");
+      if(gs.B === c.key) box.classList.add("red");
+
       wrap.appendChild(box);
     });
   }
@@ -65,17 +90,15 @@
 
   function applyState(state){
     renderResources(state);
-    renderScene(state);   // <-- renders effects_text under each choice
+    renderScene(state);
     renderResult(state);
     renderTimer(state);
 
-    // blackout
     let b = document.querySelector(".blackout");
     if(state.blackout){
       if(!b){ b = document.createElement("div"); b.className="blackout"; document.body.appendChild(b); }
     }else if(b){ b.remove(); }
 
-    // background + dim
     const dimEl = document.querySelector(".dim");
     if(dimEl) dimEl.style.setProperty("--dim", String(state.bg_dim ?? 0.35));
     const bg = document.querySelector(".bg");
@@ -84,7 +107,7 @@
 
   function connect(){
     const es = new EventSource("/stream");
-    es.onmessage = e => { try{ applyState(JSON.parse(e.data)); }catch(_){} };
+    es.onmessage = e => { try{ applyState(JSON.parse(e.data)); }catch(_){ } };
   }
 
   document.addEventListener("DOMContentLoaded", connect);

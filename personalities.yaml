@@ -1,45 +1,138 @@
+# Schema:
+# personalities: [ { id, name, blurb, origin, ties: { allies:[], rivals:[] }, voting_rule } ]
+
 personalities:
-  - name: "Ūkvedys/logist(ikas/ė)"
-    info: "Prioritetai: infrastruktūra, maistas, populiacija, moralė. Gerbia Botanik(ą/ę) dėl aprūpinimo, nepasitiki Archyvar(u/e) kaip nepraktišku."
+  - id: ukvedys
+    name: "Ūkvedys (logistika)"
+    blurb: "Skaičiuoja dėžes • Nemėgsta švaistymo • Planuoja du žingsnius į priekį"
+    origin: "Buvęs orbitinio uosto logistikos viršininkas, veda tikslius žurnalus."
+    ties:
+      allies: ["vyr_inzinierius"]
+      rivals: ["prekybininkas"]
+    voting_rule: "Visada palaiko sprendimus, kurie didina atsargas/maistą; jei keli tokie, renkasi su mažiausia „laiko“ kaina."
 
-  - name: "Vyriausias(is/ė) inžinier(ius/ė)"
-    info: "Prioritetai: infrastruktūra, populiacija, maistas, moralė. Gerbia Elektros inžinier(ių/ę), nepasitiki Psicholog(u/e) dėl 'neapčiuopiamų' problemų."
+  - id: vyr_inzinierius
+    name: "Vyriausiasis inžinierius"
+    blurb: "Pirmiausia taiso • Kalba po darbų • Miega mašinų skyriuje"
+    origin: "Vadovavo gyvybės palaikymo pertvarkai po Nusileidimo dienos."
+    ties:
+      allies: ["ukvedys"]
+      rivals: ["archeologas"]
+    voting_rule: "Renkasi mažiausią „laiko“ kainą, kuri nenuostolingai veikia gyventojus; jei visur praradimai gyventojams – ima mažiausią."
 
-  - name: "Botanik(as/ė)"
-    info: "Prioritetai: maistas, populiacija, moralė, infrastruktūra. Gerbia Astrobiolog(ą/ę), nepasitiki Saugos specialist(u/e) dėl perteklinės kontrolės."
+  - id: botanike
+    name: "Botanikė"
+    blurb: "Gyvena šiltnamyje • Matuoja savaitėmis • Kvepia bazilikais"
+    origin: "Sukūrė dumblių bokštus, maitinančius pusę bazės."
+    ties:
+      allies: ["mokytoja"]
+      rivals: ["zvalgas_kasybininkas"]
+    voting_rule: "Palaiko, jei prideda gyventojų arba maisto (atsargų); niekada nebalsuoja už gyventojų netektį, jei yra alternatyva."
 
-  - name: "Saugos specialist(as/ė)"
-    info: "Prioritetai: moralė, populiacija, infrastruktūra, maistas. Gerbia EVA specialist(ą/ę), nepasitiki Archyvar(u/e) kaip bereikalingu."
+  - id: saugumo_vadovas
+    name: "Saugumo vadovas"
+    blurb: "Eina perimetrą • Kalba brifingais • Ruošiasi blogiausiam"
+    origin: "Buvęs taikdarys juostinių kolonijų stotyse."
+    ties:
+      allies: ["gydytoja"]
+      rivals: ["diplomate"]
+    voting_rule: "Niekada nepalaiko prisijungimo prie išorinių frakcijų; esant mišriems pasirinkimams – mažiausia gyventojų netektis."
 
-  - name: "Gydytoj(as/a)"
-    info: "Prioritetai: populiacija, moralė, infrastruktūra, maistas. Gerbia Psicholog(ą/ę), nepasitiki Chemijos specialist(u/e) dėl pavojingų eksperimentų."
+  - id: gydytoja
+    name: "Gydytoja"
+    blurb: "Tvirtos rankos • Šalti sprendimai • Nulis sentimentalumo"
+    origin: "Vadovavo lauko klinikai per pirmą protrūkį."
+    ties:
+      allies: ["mokytoja"]
+      rivals: ["kapelione"]
+    voting_rule: "Niekada nepalaiko sprendimų, kurie kainuoja gyventojus; jei neišvengiama – mažiausia gyventojų netektis."
 
-  - name: "Astrobiolog(as/ė)"
-    info: "Prioritetai: infrastruktūra, maistas, populiacija, moralė. Gerbia Botanik(ą/ę), nepasitiki Ūkvedžiu dėl 'žemiško' mąstymo."
+  - id: archeologas
+    name: "Archeologas"
+    blurb: "Randa šukes • Mato sistemas • Kalbasi su mašinų „vaiduokliais“"
+    origin: "Kataloguoja priešžlugiminę techniką dykvietėse."
+    ties:
+      allies: ["archyvaras"]
+      rivals: ["saugumo_vadovas"]
+    voting_rule: "Jei yra +atsargos iš technikos/žvalgymo su ≤1 gyventojų netektimi – palaiko; kitaip – mažiausia gyventojų netektis."
 
-  - name: "Lunarolog(as/ė)"
-    info: "Prioritetai: infrastruktūra, moralė, populiacija, maistas. Gerbia Vyriausiąjį inžinierių, nepasitiki Sielovados specialist(u/e)."
+  - id: zvalgas_kasybininkas
+    name: "Žvalgas-kasybininkas"
+    blurb: "Žymi gyslas • Rizikuoja anksti • Išeina vėlai"
+    origin: "Atvėrė pirmą ledo šachtą rytų sektoriuje."
+    ties:
+      allies: ["prekybininkas"]
+      rivals: ["botanike"]
+    voting_rule: "Palaiko sprendimus, kurie didina atsargas net jei kainuoja „laiko“; niekada nepalaiko −atsargos, jei yra alternatyva."
 
-  - name: "Psicholog(as/ė)"
-    info: "Prioritetai: moralė, maistas, infrastruktūra, populiacija. Gerbia Gydytoją, nepasitiki Ūkvedžiu dėl abejingumo žmonių būklei."
+  - id: diplomate
+    name: "Diplomatė"
+    blurb: "Pirma klauso • Tada maino • Paskui pasirašo"
+    origin: "Išvedė saugaus pravažiavimo paktą su pakraščių karavanais."
+    ties:
+      allies: ["kulturos_kuratore"]
+      rivals: ["saugumo_vadovas"]
+    voting_rule: "Pirmenybė sprendimams, kurie bendradarbiavimu prideda gyventojų; jei nėra – mažiausias bendras absoliutus nuostolis."
 
-  - name: "Archyvar(as/ė)"
-    info: "Prioritetai: moralė, infrastruktūra, populiacija, maistas. Gerbia Kultūros kurator(ų/ę), nepasitiki Saugos specialist(u/e)."
+  - id: archyvaras
+    name: "Archyvaras"
+    blurb: "Fiksuoja viską • Ginčijasi išnašomis • Nekenčia trūkstamų duomenų"
+    origin: "Prižiūri chartiją ir juodųjų dėžių žurnalus."
+    ties:
+      allies: ["di_rysiai"]
+      rivals: ["archeologas"]
+    voting_rule: "Lygiosioms nutraukti balsuoja prieš aklavietę; kitaip renkasi sprendimą su aiškiausiai aprašytais kaštais prieš nežinią."
 
-  - name: "EVA specialist(as/ė)"
-    info: "Prioritetai: infrastruktūra, populiacija, maistas, moralė. Gerbia Saugos specialist(ą/ę), nepasitiki Psicholog(u/e)."
+  - id: zvalge_rait
+    name: "Žvalgė (lauko raitė/žygeivė)"
+    blurb: "Keliauja toli • Miega lengvai • Praneša glaustai"
+    origin: "Pirma sužymėjo druskų lygumas ir kanjono kelią."
+    ties:
+      allies: ["vyr_inzinierius"]
+      rivals: []
+    voting_rule: "Kai baigtiniai panašūs – mažesnė „laiko“ kaina; jei „laikas“ lygus – tą, kuris prideda gyventojų."
 
-  - name: "Chemijos specialist(as/ė)"
-    info: "Prioritetai: maistas, infrastruktūra, populiacija, moralė. Gerbia Lunarolog(ą/ę), nepasitiki Gydytoju dėl 'perdėto atsargumo'."
+  - id: prekybininkas
+    name: "Prekybininkas"
+    blurb: "Plačiai šypsosi • Skaičiuoja maržas • Parduoda vėją"
+    origin: "Valdo sandėlį ir turgų prie oro užrakto."
+    ties:
+      allies: ["ukvedys","diplomate"]
+      rivals: []
+    voting_rule: "Palaiko prekybą, jei +atsargos ≥ 3; jei nėra – nepritaria pasirinkimams, kurių „laiko“ kaina blogesnė nei −2."
 
-  - name: "Sielovados specialist(as/ė)"
-    info: "Prioritetai: moralė, populiacija, maistas, infrastruktūra. Gerbia Psicholog(ą/ę), nepasitiki Lunarolog(u/e)."
+  - id: kapelione
+    name: "Kapelionė (dvasininkė)"
+    blurb: "Uždega žvakes • Kalba paprastai • Laiko duris atviras"
+    origin: "Pradėjo kaip patarėja per ilgąją žiemą."
+    ties:
+      allies: ["kulturos_kuratore"]
+      rivals: ["gydytoja"]
+    voting_rule: "Niekada nepalaiko žudymo ar priverstinės tremties; jei neišvengiama – mažiausia gyventojų netektis."
 
-  - name: "Mokymo konsultant(as/ė)"
-    info: "Prioritetai: populiacija, maistas, infrastruktūra, moralė. Gerbia Kultūros kurator(ę/ų), nepasitiki Ūkvedžiu dėl griežtumo."
+  - id: mokytoja
+    name: "Mokytoja"
+    blurb: "Tvarko chaosą • Rašo ant sienų • Matuoja pažangą"
+    origin: "Pastatė vieno kambario mokyklą iš krovinių konteinerių."
+    ties:
+      allies: ["botanike","archyvaras"]
+      rivals: []
+    voting_rule: "Jei padeda šeimoms arba prideda gyventojų – palaiko; kitu atveju „laiko“ kaina ≤ −2 prieš gyventojų/atsargų nuostolius."
 
-  - name: "Elektros inžinier(ius/ė)"
-    info: "Prioritetai: infrastruktūra, populiacija, moralė, maistas. Gerbia Vyriausiąjį inžinierių, nepasitiki Botanik(u/e)."
+  - id: matininkas
+    name: "Matininkas (topografas)"
+    blurb: "Lygina gruntą • Žymi ribas • Mąsto tinkleliais"
+    origin: "Sudėjo plėtros sektorių atskaitos akmenis."
+    ties:
+      allies: ["zvalge_rait"]
+      rivals: ["kapelione"]
+    voting_rule: "Pirmenybė infrastruktūrai ar žvalgymui, kuris „laiką“ išmaino į būsimas atsargas; jei nėra – geriau prarasti „laiko“, o ne atsargų."
 
-  - name: "Kultūros kurator(ius/ė)"
-    info: "Prioritetai: moralė, maistas, populiacija, infrastruktūra. Gerbia Archyvar(ą/ę), nepasitiki Chemijos specialist(u/e)."
+  - id: kulturos_kuratore
+    name: "Kultūros kuratorė"
+    blurb: "Rengia šventes • Mokina dainų • Spausdina plakatus"
+    origin: "Mažomis apeigomis palaiko moralę."
+    ties:
+      allies: ["diplomate","botanike"]
+      rivals: []
+    voting_rule: "Niekada nepalaiko atvykėlių atstūmimo; jei talpa ribota – renkasi su mažiausiu bendru nuostoliu."

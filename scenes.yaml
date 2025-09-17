@@ -8,26 +8,10 @@
 # ============================================================
 
 resources:
-  population: 20
-  food: 20
-  morale: 20
-  infrastructure: 20
-
-
-# ============================================================
-# Colony Sim: Scenes & Resources (Dice Effects Template)
-# ============================================================
-# Effects can be:
-#   - integers (e.g., -3, +2)
-#   - dice strings: [+|-]<N>d<S> (e.g., "+1d6", "-2d4", "2d8")
-# Scene selection does NOT auto-advance; GM chooses the next scene manually.
-# ============================================================
-
-resources:
-  population: 20
-  food: 20
-  morale: 20
-  infrastructure: 20
+  population: 10
+  food: 10
+  morale: 10
+  infrastructure: 10
 
 scenes:
 
@@ -36,23 +20,23 @@ scenes:
   description: Kolonijoje trūksta vietos naujiems gyventojams ir moduliams.
   choices:
   - key: build_new_modules
-    label: Statyti naujus modulius
+    label: 1. Statyti naujus modulius
     effects:
       infrastructure: +1d8
       food: -1d6
   - key: refit_existing_modules
-    label: Susitvarkyti esamus modulius
+    label: 2. Susitvarkyti esamus modulius
     effects:
       infrastructure: +1d6
       morale: -1d4
   - key: dig_tunnels
-    label: Kasti tunelius
+    label: 3. Kasti tunelius
     effects:
       infrastructure: +1d8
       food: -1d4
       population: -1d4
   - key: do_nothing
-    label: Nieko nedaryti
+    label: 4. Nieko nedaryti
     effects:
       population: -1d2
       morale: -1d6
@@ -63,21 +47,21 @@ scenes:
   description: CO₂ filtras pradeda gesti, kvėpuojamo oro kokybė sparčiai krenta. Ką daryti kol sistemą suremontuos?
   choices:
   - key: urgent_repair
-    label: Sukonstruoti laikinus CO₂ filtrus iš atsarginių dalių
+    label: 1. Sukonstruoti laikinus CO₂ filtrus iš atsarginių dalių
     effects:
       infrastructure: -1d8
   - key: earth_resupply
-    label: Užsakyti skubų filtrų papildymą iš Žemės
+    label: 2. Auginti nevalgomus, bet daugiau deguonies generuojančius augalus
     effects:
-      infrastructure: -1d4
+      food: -1d4
       morale: -1d4
   - key: shared_rations
-    label: Paskirstyti nešiojamas deguonies kapsules įgulai
+    label: 3. Paskirstyti nešiojamas deguonies kapsules įgulai
     effects:
       population: -1d2
       morale: -1d4
   - key: do_nothing
-    label: Nieko nedaryti – laukti, kol sistema persikraus
+    label: 4. Nieko nedaryti – laukti, kol sistema persikraus
     effects:
       population: -1d6
       morale: -1d6
@@ -88,21 +72,21 @@ scenes:
   description: Kritinis energijos magistralės gedimas sustabdo elektros tiekimą kolonijos sistemoms.
   choices:
   - key: switch_pdu
-    label: Įjungti eksperimentinį branduolių sąsaja paremtą generatorių
+    label: 1. Įjungti eksperimentinį branduolių sąlaja paremtą generatorių
     effects:
       infrastructure: -1d6
       morale: +1d4
   - key: shed_load
-    label: Išjungti antraeiles sistemas energijai taupyti
+    label: 2. Išjungti antraeiles sistemas energijai taupyti
     effects:
       morale: -1d4
   - key: eva_repair
-    label: Išsiųsti komandą išorinių linijų patikrai ir remontui
+    label: 3. Išsiųsti komandą išorinių linijų patikrai ir remontui
     effects:
       infrastructure: +1d6
       population: -1d2
   - key: do_nothing
-    label: Nieko nedaryti – dalį kolonijos palikti be energijos
+    label: 4. Nieko nedaryti – dalį kolonijos palikti be energijos
     effects:
       population: -1d8
       morale: -1d8
@@ -113,20 +97,20 @@ scenes:
   description: Vandens valytuvas sugenda, geriamas vanduo tampa užterštas.
   choices:
   - key: isolate_line
-    label: Atskirti užterštą liniją, pereiti prie atsargų
+    label:  1. Atskirti užterštą liniją, pereiti prie atsargų
     effects:
       food: -1d4
       morale: -1d2
   - key: repair_filter
-    label: Taisyti filtravimo modulius ardant kitą įrangą
+    label: 2. Taisyti filtravimo modulius ardant kitą įrangą
     effects:
       infrastructure: -1d6
   - key: ration_water
-    label: Riboti vandens naudojimą, skiriant tik svarbiausioms sistemoms
+    label: 3. Riboti vandens naudojimą, skiriant tik svarbiausioms sistemoms
     effects:
       morale: -1d6
   - key: do_nothing
-    label: Nieko nedaryti – leisti įprasti prie blogo skonio
+    label: 4. Nieko nedaryti – leisti įprasti prie blogo skonio
     effects:
       population: -1d6
       infrastructure: -1d4
@@ -136,23 +120,23 @@ scenes:
   description: Jutikliai aptinka kenksmingų grybų sporų šiltnamiuose.
   choices:
   - key: destroy_crop
-    label: Sunaikinti užkrėstą derlių ir persodinti naują
+    label: 1. Sunaikinti užkrėstą derlių ir persodinti naują
     effects:
       infrastructure: -1d6
       food: -2d4
   - key: tune_env
-    label: Tirti šiltnamių slėgį ir drėgmę, kad sulėtinti grybų augimą
+    label: 2. Tirti šiltnamių slėgį ir drėgmę, siekiant sulėtinti grybų augimą
     effects:
       morale: +1d4
       food: -1d8
   - key: study_fungi
-    label: Pasinaudoti proga tirti kosminius grybus
+    label: 3. Pasinaudoti proga tirti kosminius grybus
     effects:
       population: -1d2
       food: -1d4
       morale: +1d6
   - key: do_nothing
-    label: Nieko nedaryti – rizikuoti apsinuodijimu
+    label: 4. Nieko nedaryti – rizikuoti apsinuodijimu
     effects:
       population: -1d8
       food: -2d8
@@ -162,20 +146,20 @@ scenes:
   description: Artėjančių švenčių proga kolonijai sveikinimą atsiunčia ES prezidentas.
   choices:
   - key: accept_call
-    label: Kartu padėkoti valdžiai už skambutį ir perduoti linkėjimus
+    label: 1. Kartu padėkoti valdžiai už skambutį ir perduoti linkėjimus
     effects:
       morale: +1d6
   - key: decline_call
-    label: Atsisakyti skambučio – per daug užimti
+    label: 2. Atsisakyti skambučio – per daug užimti
     effects:
       food: +1d4
       infrastructure: +1d4
   - key: criticize_earth
-    label: Pasinaudoti proga kritikuoti Žemės valdžią
+    label: 3. Pasinaudoti proga kritikuoti Žemės valdžią
     effects:
       morale: +1d6
   - key: broadcast_greetings
-    label: Kolonija transliuoja individualius sveikinimus
+    label: 4. Kolonija transliuoja individualius sveikinimus
     effects:
       morale: +1d4
 
@@ -184,44 +168,44 @@ scenes:
   description: Kinijos Liaudies Respublikos robotas pasiekia koloniją, pradeda tirti aplinkinę teritoriją.
   choices:
   - key: dismantle_robot
-    label: Išrinkti robotą ir panaudoti jo dalis
+    label: 1. Išrinkti robotą ir panaudoti jo dalis
     effects:
       infrastructure: +1d6
   - key: reprogram_robot
-    label: Perprogramuoti robotą kolonijos naudai
+    label: 2. Perprogramuoti robotą kolonijos naudai
     effects:
       infrastructure: +1d4
       morale: +1d4
   - key: destroy_robot
-    label: Greitai sunaikinti robotą
+    label: 3. Greitai sunaikinti robotą
     effects:
       morale: +1d8
   - key: do_nothing
-    label: Nieko nedaryti – leisti robotui dirbti
+    label: 4. Nieko nedaryti – leisti robotui dirbti
     effects:
       morale: +1d6
       infrastructure: +1d4
 
 - id: 8_saules_audra
   title: Saulė suaktyvėja
-  description: Saulės aktyvumo padidėjimas gali turėti įtakos kolonijos infrastruktūrai.
+  description: Saulės aktyvumo padidėjimas gali pakenkti kolonijos infrastruktūrai.
   choices:
   - key: isjungti
-    label: Išjungti neesmines sistemas ir slėptis
+    label: 1. Išjungti neesmines sistemas ir slėptis
     effects:
       infrastructure: -1d8
   - key: regolito_maisai
-    label: Greitai sukrauti regolito maišus kaip izoliaciją
+    label: 2. Greitai sukrauti regolito maišus kaip izoliaciją
     effects:
       infrastructure: -1d4
       morale: -1d4
   - key: elektromagnetine_gaudykle
-    label: Rizikuoti su eksperimentine elektromagnetine gaudykle
+    label: 3. Įjungti eksperimentinį elektromagnetinį skydą
     effects:
       population: -1d2
       morale: -1d4
   - key: do_nothing
-    label: Nieko nedaryti
+    label: 4. Nieko nedaryti
     effects:
       population: -1d6
       morale: -1d6
@@ -232,20 +216,21 @@ scenes:
   description: Kolonija organizuoja Eurovizijos dainų konkurso peržiūrą.
   choices:
   - key: totalizatorius
-    label: Organizuoti totalizatorių
+    label: 1. Organizuoti totalizatorių
     effects:
-      infrastructure: -1d8
+      food: -1d8
   - key: blokuoti
-    label: Blokuoti transliaciją, trukdo darbui
+    label: 2. Blokuoti transliaciją, trukdo darbui
     effects:
       infrastructure: -1d4
       morale: -1d4
   - key: balsuoti_ebu
-    label: Atlikti apklausą ir pateikti balsus EBU
+    label: 3. Atlikti apklausą ir pateikti balsus EBU
     effects:
       morale: -1d4
+      food: -1d4
   - key: do_nothing
-    label: Nieko neorganizuoti
+    label: 4. Nieko neorganizuoti
     effects:
       population: -1d6
       morale: -1d6
@@ -253,23 +238,24 @@ scenes:
 
 - id: 10_lavos_tunelis
   title: Tyrinėtojai užstringa lavos tunelyje
-  description: Mūsų tyrinėtojams tiriant lavos tunelį šis užgriuvo.
+  description: Mūsų tyrinėtojams tiriant lavos tunelį šis sugriuvo ir juos įkalino.
   choices:
   - key: send_bots_blast
-    label: Siųsti robotus sprogdinti akmenų
+    label: 1. Siųsti robotus sprogdinti akmenų
     effects:
       infrastructure: -1d8
   - key: send_humans_careful
-    label: Siųsti žmones atsargiai išardyti uolienas
+    label: 2. Siųsti žmones atsargiai išardyti uolienas
     effects:
       infrastructure: -1d4
       morale: -1d4
   - key: drill_from_adjacent
-    label: Gręžtis iš gretimo tunelio
+    label: 3. Gręžtis iš gretimo tunelio
     effects:
-      infrastructure: -1d8
+      infrastructure: -1d6
+      population: -1d2
   - key: do_nothing
-    label: Palikti juos likimo valiai
+    label: 4. Palikti juos likimo valiai
     effects:
       population: -1d6
       morale: -1d6
@@ -280,21 +266,21 @@ scenes:
   description: Kolonijoje pasirodo naujas patogenas, kuris kelia grėsmę gyventojams.
   choices:
   - key: isolate_infected
-    label: Izoliuoti užkrėstus asmenis
+    label: 1. Izoliuoti užkrėstus asmenis
     effects:
       infrastructure: -1d8
   - key: quarantine_modules
-    label: Karantinuoti užkrėstus modulius
+    label: 2. Karantinuoti užkrėstus modulius
     effects:
       infrastructure: -1d4
       morale: -1d4
   - key: experimental_treatment
-    label: Eksperimentuoti su gydymo metodais
+    label: 3. Eksperimentuoti su gydymo metodais
     effects:
       population: -1d2
       morale: -1d4
   - key: do_nothing
-    label: Nieko nedaryti
+    label: 4. Nieko nedaryti
     effects:
       population: -1d6
       morale: -1d6
@@ -305,47 +291,47 @@ scenes:
   description: Greta kolonijos randami nauji grynų metalų ištekliai.
   choices:
   - key: greitai_ekstrakcija
-    label: Greitai išgauti išteklius ir pasipelnyti
+    label: 1. Greitai išgauti išteklius ir pasipelnyti
     effects:
-      infrastructure: -1d8
+      infrastructure: +1d8
+      food: -1d6
   - key: atsargus_planas
-    label: Išteklius išgauti atsargiai, kad nepažeistume aplinkos
+    label: 2. Išteklius išgauti atsargiai, kad nepažeistume aplinkos
     effects:
-      infrastructure: -1d4
-      morale: -1d4
+      infrastructure: +1d4
+      morale: +1d4
   - key: kasti_tunelius
-    label: Kasti tunelius
+    label: 3. Kasti tunelius išteklių link
     effects:
       population: -1d2
-      morale: -1d4
+      infrastructure: +1d6
   - key: do_nothing
-    label: Nieko nedaryti
+    label: 4. Nieko nedaryti
     effects:
-      population: -1d6
       morale: -1d6
-      infrastructure: -1d8
+      infrastructure: +1d2
 
 - id: 13_psych_tensions
   title: Psichologinė įtampa
   description: Įguloje kyla konfliktai dėl izoliacijos ir ilgo užsidarymo.
   choices:
   - key: counseling
-    label: Skirti laiką bendriems psichologiniams pokalbiams
+    label: 1. Skirti laiką bendriems psichologiniams pokalbiams
     effects:
       morale: +1d6
       infrastructure: -1d2
   - key: rotations
-    label: Pertvarkyti pamainas, kad žmonės mažiau matytų vieni kitus
+    label: 2. Pertvarkyti pamainas, kad žmonės mažiau matytų vieni kitus
     effects:
       morale: +1d4
-      population: -1
+      population: -1d2
   - key: strict_rules
-    label: Įvesti griežtesnes drausmės taisykles
+    label: 3. Įvesti griežtesnes drausmės taisykles
     effects:
       morale: -1d4
       infrastructure: +1d4
   - key: do_nothing
-    label: Nieko nedaryti – tikėtis, kad išsispręs savaime
+    label: 4. Nieko nedaryti – tikėtis, kad išsispręs savaime
     effects:
       morale: -1d8
       population: -1d2
@@ -380,48 +366,48 @@ scenes:
   description: Atsargos išseko, šiltnamių derlius per menkas. Kolonistai jaučia alkį.
   choices:
   - key: ration
-    label: Griežtai normuoti maistą
+    label: 1. Griežtai normuoti maistą
     effects:
       morale: -1d6
       population: -1d4
   - key: lab_protein
-    label: Bandymas panaudoti eksperimentinę baltymų gamybą iš laboratorinių mikroorganizmų
+    label: 2. Bandyti panaudoti eksperimentiškai iš laboratorinių mikroorganizmų pagamintus baltymus
     effects:
       infrastructure: -1d4
       food: +1d6
       population: -1d2
   - key: import_request
-    label: Siųsti skubų prašymą Žemei
+    label: 3. Siųsti skubų prašymą Žemei
     effects:
       morale: -1d6
       food: +2d4
   - key: do_nothing
-    label: Nieko nedaryti – laukti kito derliaus
+    label: 4. Nieko nedaryti – laukti kito derliaus
     effects:
       population: -1d6
       morale: -1d6
 
 - id: 16_population_drop
   title: Žmonių trūkumas
-  description: Trauma, ligos ir sunkus darbas paliko koloniją su per mažai rankų.
+  description: Traumos, ligos ir sunkus darbas paliko koloniją su per mažai rankų.
   choices:
   - key: automation
-    label: Diegti daugiau darbų automatizacijos
+    label: 1. Diegti daugiau darbų automatizacijos
     effects:
       infrastructure: -1d6
       morale: +1d2
   - key: recruit_chinese
-    label: Pateikti Kinijos Liaudies Respublikai prašymą atsiųsti savanorių
+    label: 2. Pateikti Kinijos Liaudies Respublikai prašymą atsiųsti savanorių
     effects:
       morale: -1d4
       population: +1d8
   - key: reassign
-    label: Perkvalifikuoti gyventojus į svarbiausias pareigas
+    label: 3. Perkvalifikuoti gyventojus į svarbiausias pareigas
     effects:
       infrastructure: -1d2
       morale: -1d2
   - key: do_nothing
-    label: Nieko nedaryti – darbai vėluos
+    label: 4. Nieko nedaryti – darbai vėluos
     effects:
       infrastructure: -1d6
       food: -1d4
@@ -431,22 +417,22 @@ scenes:
   description: Izoliacija, ilgas darbas ir nuolatinės krizės sukelia neviltį kolonijoje.
   choices:
   - key: festival
-    label: Surengti šventę su likusiomis atsargomis
+    label: 1. Surengti šventę su likusiomis atsargomis
     effects:
       food: -1d6
       morale: +2d6
   - key: counseling_program
-    label: Įdiegti psichologinės pagalbos programą
+    label: 2. Įdiegti psichologinės pagalbos programą
     effects:
       infrastructure: -1d4
       morale: +1d8
   - key: strict_regime
-    label: Įvesti griežtą discipliną
+    label: 3. Įvesti griežtą discipliną
     effects:
-      morale: -1d6
-      infrastructure: +1d4
+      morale: +1d6
+      population: -1d4
   - key: do_nothing
-    label: Nieko nedaryti – laukti kol nuslūgs
+    label: 4. Nieko nedaryti – laukti kol nuslūgs
     effects:
       morale: -1d4
       population: -1d6
@@ -456,24 +442,24 @@ scenes:
   description: Sistemos sugriuvo – siurbliai, laidai, moduliai išsijungia.
   choices:
   - key: salvage
-    label: Išardyti mažiau svarbius modulius atsarginėms dalims
+    label: 1. Išardyti mažiau svarbius modulius atsarginėms dalims
     effects:
       infrastructure: +1d6
       morale: -1d4
   - key: emergency_team
-    label: Sukurti avarinę remonto komandą
+    label: 2. Sukurti avarinę remonto komandą
     effects:
       infrastructure: +2d4
       population: -1d4
   - key: earth_support
-    label: Prašyti Žemės pagalbos ir siuntinių
+    label: 3. Prašyti Žemės pagalbos ir siuntinių
     effects:
       morale: -1d4
       infrastructure: +1d6
   - key: do_nothing
-    label: Nieko nedaryti – tikėtis, kad sistema atsigaus
+    label: 4. Nieko nedaryti – tikėtis, kad sistema atsigaus
     effects:
-      infrastructure: -1d6
+      food: -1d6
       morale: -1d6
       population: -1d4
 
@@ -482,21 +468,21 @@ scenes:
   description: Keisti garsai sklinda pro kolonijos sienas. Ką daryti?
   choices:
   - key: begti
-    label: Bėgti pas Kinus
+    label: 1. Evakuotis į Kinijos stotį
     effects:
       morale: -1d8
   - key: eiti_patikrinti
-    label: Eiti pažiūrėti kas ten
+    label: 2. Eiti pažiūrėti, kas ten
     effects:
       infrastructure: -1d4
       morale: -1d4
   - key: gintis
-    label: Slėptis ir ginkluotis
+    label: 3. Slėptis ir ginkluotis
     effects:
       population: -1d2
       morale: -1d4
   - key: do_nothing
-    label: Nieko nedaryti
+    label: 4. Nieko nedaryti
     effects:
       population: -1d6
       morale: -1d6
@@ -545,3 +531,4 @@ scenes:
   ## nieko daryti musa morale ir populiacija
   #
 #
+

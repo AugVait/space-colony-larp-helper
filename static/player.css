@@ -15,5 +15,9 @@ html,body{margin:0;height:100%;background:#0c0e12;color:var(--fg);font-family:sy
 .result{position:absolute;left:6vw;right:6vw;bottom:1.6vh;text-align:center;font-size:clamp(18px,2.6vw,36px);color:#e9f0ff;background:rgba(0,0,0,0.35);padding:10px 12px;border-radius:10px;min-height:36px}
 .blackout{position:absolute;inset:0;background:#000}
 
-/* NEW: highlight selected choice */
+/* Existing resolved choice outline */
 .choice.selected{outline:4px solid #ff3b3b;box-shadow:0 0 0 4px rgba(255,59,59,0.25) inset}
+
+/* NEW: leader A/B preview outlines */
+.choice.green{outline:4px solid #2fbf71;box-shadow:0 0 0 4px rgba(47,191,113,0.25) inset}
+.choice.red{outline:4px solid #cf3d3d;box-shadow:0 0 0 4px rgba(207,61,61,0.25) inset}

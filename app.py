@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-space-colony-larp-helper — Flask backend (GM + Player + Assigner)
-- /gm, /player, /assigner pages
-- YAML scenes/resources
-- SSE /stream
-- Choice effects with dice ("1d8+1" and with spaces)
-- Simplified personalities (name, info) + random assignment
-- Co-captain counters (per player)
+Minimal changes to add:
+- leader A/B highlight, controlled by GM checkboxes
+- player: consequences still revealed only after a choice is resolved
+Everything else preserved.
 """
-
 from __future__ import annotations
 import json, os, random, re, threading, time, socket
 from pathlib import Path
@@ -21,9 +17,9 @@ from flask import Flask, Response, jsonify, render_template, request
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 # Global state
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 LOCK = threading.RLock()
 STATE: Dict[str, Any] = {
     "title": "",
@@ -35,11 +31,13 @@ STATE: Dict[str, Any] = {
     "bg_dim": 0.35,
     "blackout": False,
     "last_result_text": "",
-    "last_choice_key": None,     # <-- highlight on player view
+    "last_choice_key": None,     # highlight on player view after resolve
     "show_timer": False,
     "timer_seconds": 0,
     "timer_running": False,
     "timer_ends_at": None,
+    # NEW: which choice each leader highlights for preview on player
+    "group_selected": {"A": None, "B": None},
 }
 SCENES: List[Dict[str, Any]] = []
 CURRENT_SCENE_ID: str | None = None
@@ -47,7 +45,7 @@ SUBSCRIBERS: List[SimpleQueue] = []
 
 SCENES_PATH_DEFAULT = Path("scenes.yaml")
 PERSONALITIES_PATH = Path("personalities.yaml")
-COCAPTAIN_COUNTS: Dict[str, int] = {}  # {"PlayerName": times_as_co_captain}
+COCAPTAIN_COUNTS: Dict[str, int] = {}
 
 RESOURCE_ALIASES = {
     "people": "population",
@@ -58,10 +56,11 @@ RESOURCE_ALIASES = {
     "infrastructure": "infrastructure",
 }
 
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 # Utilities
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 def _now() -> float: return time.time()
+
 def normalize_resource_key(k: str) -> str:
     k2 = (k or "").strip().lower()
     return RESOURCE_ALIASES.get(k2, k2)
@@ -69,7 +68,7 @@ def normalize_resource_key(k: str) -> str:
 DICE_TOKEN_RE = re.compile(r"([+\-]?\s*(?:\d+d\d+|\d+))", re.I)
 
 def roll_expr(expr: Any) -> Tuple[int, str]:
-    if isinstance(expr, (int, float)): 
+    if isinstance(expr, (int, float)):
         v = int(expr); return v, f"{v:+d}"
     if not isinstance(expr, str): return 0, "+0"
     s = expr.replace("−", "-")
@@ -145,6 +144,8 @@ def set_current_scene(scene_id: str | None):
         CURRENT_SCENE_ID = scene_id
         STATE["last_result_text"] = ""
         STATE["last_choice_key"] = None
+        # reset leader previews when switching scenes
+        STATE["group_selected"] = {"A": None, "B": None}
         if scene_id is None:
             STATE["title"] = ""; STATE["description"] = ""; STATE["choices"] = []
         else:
@@ -157,9 +158,9 @@ def set_current_scene(scene_id: str | None):
                     chs.append({"key": c.get("key"), "label": c.get("label",""), "effects_text": c.get("effects_text","")})
                 STATE["choices"] = chs
 
-# -----------------------------------------------------------------------------#
-# YAML: scenes
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
+# YAML
+# -----------------------------------------------------------------------------
 def load_scenes_from_file(path: Path) -> Tuple[Dict[str, int], List[Dict[str, Any]]]:
     if not path.exists(): raise FileNotFoundError(str(path))
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -171,24 +172,23 @@ def load_scenes_from_file(path: Path) -> Tuple[Dict[str, int], List[Dict[str, An
             ch["effects_text"] = ch.get("effects_text") or effects_to_text(eff)
     return resources, scenes
 
-# -----------------------------------------------------------------------------#
-# YAML: personalities (simplified: name, info)
-# -----------------------------------------------------------------------------#
 def load_personalities() -> List[Dict[str, Any]]:
     if not PERSONALITIES_PATH.exists(): return []
     data = yaml.safe_load(PERSONALITIES_PATH.read_text(encoding="utf-8")) or {}
     plist = data.get("personalities", []) or []
     for p in plist:
-        p["name"] = str(p.get("name","")).strip()
-        p["info"] = str(p.get("info","")).strip()
+        p["name"] = str(p.get("name",""))
+        p["info"] = str(p.get("info",""))
         p["id"] = re.sub(r"[^a-z0-9_]+","_", p["name"].lower()).strip("_") or f"p_{abs(hash(p['name']))%10000}"
     return plist
 
+# Keep personalities available (unchanged API)
+import re
 PERSONALITIES_CACHE = load_personalities()
 
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 # SSE
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 @app.get("/stream")
 def stream():
     q = SimpleQueue(); SUBSCRIBERS.append(q)
@@ -201,9 +201,10 @@ def stream():
     return Response(gen(), headers={
         "Content-Type":"text/event-stream","Cache-Control":"no-cache","X-Accel-Buffering":"no","Connection":"keep-alive"
     })
-# -----------------------------------------------------------------------------#
+
+# -----------------------------------------------------------------------------
 # Pages
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 @app.get("/")
 def index():
     return render_template("gm.html")
@@ -220,15 +221,42 @@ def page_player():
 def page_assigner():
     return render_template("assigner.html")
 
-# -----------------------------------------------------------------------------#
-# APIs: scenes/resources/state
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
+# APIs
+# -----------------------------------------------------------------------------
 @app.post("/api/load_yaml")
 def api_load_yaml():
     payload = request.get_json(force=True) or {}
     path = Path(payload.get("path") or SCENES_PATH_DEFAULT)
     try:
         resources, scenes = load_scenes_from_file(path)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+    with LOCK:
+        set_resources(resources, order=resources.keys())
+        global SCENES
+        SCENES = scenes
+        set_current_scene(scenes[0]["id"] if scenes else None)
+    broadcast(); return jsonify({"ok": True})
+
+# NEW: upload scenes YAML directly from posted text
+@app.post("/api/upload_yaml")
+def api_upload_yaml():
+    """Load scenes and resources from raw YAML string.
+
+    Expects JSON payload with a "data" field containing the YAML content.
+    """
+    payload = request.get_json(force=True) or {}
+    yaml_text = payload.get("data") or ""
+    try:
+        data = yaml.safe_load(yaml_text) or {}
+        resources = data.get("resources", {}) or {}
+        scenes = data.get("scenes", []) or []
+        # compute effects_text for each choice
+        for sc in scenes:
+            for ch in sc.get("choices", []) or []:
+                eff = ch.get("effects", {}) or {}
+                ch["effects_text"] = ch.get("effects_text") or effects_to_text(eff)
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
     with LOCK:
@@ -284,6 +312,17 @@ def api_choice():
         STATE["last_choice_key"] = choice.get("key")
     broadcast(); return jsonify({"ok": True, "delta": delta})
 
+# NEW: set leader A/B highlighted choice for player outline
+@app.post("/api/leader_select")
+def api_leader_select():
+    payload = request.get_json(force=True) or {}
+    leader = payload.get("leader")
+    choice = payload.get("choice")
+    with LOCK:
+        if leader in ("A","B"):
+            STATE["group_selected"][leader] = choice
+    broadcast(); return jsonify({"ok": True})
+
 # background / blackout / timer
 @app.post("/api/background")
 def api_background():
@@ -327,7 +366,7 @@ def api_timer():
             STATE["show_timer"] = not STATE.get("show_timer", False)
     broadcast(); return jsonify({"ok": True})
 
-# personalities / assignment / co-captains
+# personalities / assignment / co-captains (unchanged APIs)
 @app.get("/api/personalities")
 def api_personalities(): return jsonify(PERSONALITIES_CACHE)
 
@@ -351,15 +390,15 @@ def api_cocaptains_get(): return jsonify({"counts": COCAPTAIN_COUNTS})
 @app.post("/api/cocaptain")
 def api_cocaptain_bump():
     p = request.get_json(force=True) or {}
-    name = str(p.get("name","")).strip()
+    name = str(p.get("name",""))
     delta = int(p.get("delta", 1))
     if not name: return jsonify({"error":"Trūksta vardo."}), 400
     COCAPTAIN_COUNTS[name] = max(0, int(COCAPTAIN_COUNTS.get(name, 0)) + delta)
     return jsonify({"ok": True, "name": name, "count": COCAPTAIN_COUNTS[name]})
 
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 # Bootstrap
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 def _initial_bootstrap():
     try:
         if SCENES_PATH_DEFAULT.exists():
@@ -375,9 +414,9 @@ def _initial_bootstrap():
         print("Initial load failed:", e)
 _initial_bootstrap()
 
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 # Run
-# -----------------------------------------------------------------------------#
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", "5000"))

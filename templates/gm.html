@@ -26,6 +26,18 @@
     .resitem .name { font-size: 12px; color:#9aa7d7; }
     .resitem .controls { display:flex; align-items:center; gap:6px; margin-top:6px; }
     .resitem input[type=number]{ width: 90px; }
+    /* override base player.css height/overflow to enable scrolling on GM page */
+    html, body {
+      height: auto;
+    }
+    body {
+      overflow-y: auto;
+    }
+    .wrap {
+      height: auto;
+      min-height: 100vh;
+      overflow: visible;
+    }
   </style>
 </head>
 <body>
@@ -34,8 +46,11 @@
 
     <fieldset>
       <legend>Load Scenes (YAML)</legend>
-      <div class="row">
-        <input id="yaml_path" type="text" placeholder="scenes.yaml" style="flex:1;">
+      <!-- allow file selection or manual path -->
+      <div class="row" style="flex-wrap:wrap; gap:8px; align-items:center;">
+        <!-- choose YAML file directly; hidden label to show file name -->
+        <input id="yaml_file" type="file" accept=".yaml,.yml" style="max-width:200px;" />
+        <input id="yaml_path" type="text" placeholder="scenes.yaml" style="flex:1;" />
         <button onclick="loadYaml()">Load</button>
         <span id="load_status" style="color:#cfd6ff;"></span>
       </div>
@@ -54,6 +69,7 @@
         <div id="scene_desc" style="color:#bfc7e8; white-space:pre-wrap;"></div>
         <label style="margin-top:12px;">Choices</label>
         <div id="scene_choices" class="row"></div>
+        <p style="color:#9aa7d7;margin:.5rem 0 0">Tick A/B next to a choice to preview to players. Click the choice to resolve it.</p>
       </fieldset>
 
       <fieldset>
